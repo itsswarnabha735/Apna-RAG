@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, FormEvent } from "react";
+import Image from "next/image";
 
 interface Message {
   role: "user" | "assistant";
@@ -105,9 +106,13 @@ export default function ChatPage() {
       {/* Header */}
       <header className="sticky top-0 z-10 bg-slate-900/80 backdrop-blur-md border-b border-slate-700/50 px-6 py-4">
         <div className="max-w-4xl mx-auto flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-            <span className="text-white text-lg">🧠</span>
-          </div>
+          <Image
+            src="/logo.svg"
+            alt="Apna RAG Logo"
+            width={40}
+            height={40}
+            className="rounded-full"
+          />
           <div>
             <h1 className="text-xl font-semibold text-white">Apna RAG</h1>
             <p className="text-sm text-slate-400">Your private knowledge assistant</p>
@@ -141,8 +146,8 @@ export default function ChatPage() {
         {/* Status Toast */}
         {ingestStatus.type && (
           <div className={`max-w-4xl mx-auto mt-3 px-4 py-2 rounded-lg text-sm ${ingestStatus.type === 'success'
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+            : 'bg-red-500/10 text-red-400 border border-red-500/20'
             }`}>
             {ingestStatus.type === 'success' ? '✅' : '❌'} {ingestStatus.message}
           </div>
@@ -154,8 +159,13 @@ export default function ChatPage() {
         <div className="max-w-4xl mx-auto space-y-6">
           {messages.length === 0 && (
             <div className="text-center py-20">
-              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-600/20 flex items-center justify-center">
-                <span className="text-4xl">💬</span>
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-600/20 flex items-center justify-center p-2">
+                <Image
+                  src="/logo.svg"
+                  alt="Apna RAG"
+                  width={64}
+                  height={64}
+                />
               </div>
               <h2 className="text-2xl font-semibold text-white mb-2">
                 Ask me anything
