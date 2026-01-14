@@ -8,6 +8,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
+import subprocess
+import sys
 from langchain_ollama import OllamaEmbeddings
 from langchain_community.vectorstores import LanceDB
 from langchain_community.retrievers import BM25Retriever
@@ -103,6 +105,70 @@ async def health_check():
         vector_store_ready=vector_store is not None,
         bm25_ready=bm25_retriever is not None
     )
+
+class IngestResponse(BaseModel):
+    status: str
+    message: str
+    documents_processed: Optional[int] = None
+
+@app.post("/ingest", response_model=IngestResponse)
+async def trigger_ingestion():
+    """
+    Trigger document ingestion: runs ingest.py and reloads the vector store and BM25 index.
+    """
+    global vector_store, bm25_retriever, bm25_docs
+    
+    try:
+        # Step 1: Run the ingest.py script
+        print("🔄 Running ingestion script...")
+        result = subprocess.run(
+            [sys.executable, "ingest.py"],
+            cwd=os.path.dirname(os.path.abspath(__file__)),
+            capture_output=True,
+            text=True,
+            timeout=600  # 10 minute timeout for large document sets
+        )
+        
+        if result.returncode != 0:
+            print(f"❌ Ingestion failed: {result.stderr}")
+            return IngestResponse(
+                status="error",
+                message=f"Ingestion script failed: {result.stderr}"
+            )
+        
+        print("✅ Ingestion script completed. Reloading indexes...")
+        
+        # Step 2: Reload the vector store
+        vector_store = LanceDB(embedding=embeddings, uri=LANCEDB_URI)
+        print("  ✅ Vector store reloaded.")
+        
+        # Step 3: Reload BM25 index
+        bm25_docs = load_docs_for_bm25(DOCS_DIR)
+        if bm25_docs:
+            bm25_retriever = BM25Retriever.from_documents(bm25_docs)
+            bm25_retriever.k = 10
+            print(f"  ✅ BM25 Index rebuilt with {len(bm25_docs)} documents.")
+        else:
+            bm25_retriever = None
+            print("  ⚠️ No documents found for BM25 after reload.")
+        
+        return IngestResponse(
+            status="success",
+            message="Knowledge base refreshed successfully!",
+            documents_processed=len(bm25_docs) if bm25_docs else 0
+        )
+        
+    except subprocess.TimeoutExpired:
+        return IngestResponse(
+            status="error",
+            message="Ingestion timed out after 10 minutes."
+        )
+    except Exception as e:
+        print(f"❌ Ingestion error: {e}")
+        return IngestResponse(
+            status="error",
+            message=f"Ingestion error: {str(e)}"
+        )
 
 @app.post("/search", response_model=SearchResponse)
 async def search(request: SearchRequest):

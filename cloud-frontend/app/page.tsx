@@ -12,6 +12,8 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isIngesting, setIsIngesting] = useState(false);
+  const [ingestStatus, setIngestStatus] = useState<{ type: 'success' | 'error' | null, message: string }>({ type: null, message: '' });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -21,6 +23,37 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const handleRefreshKnowledgeBase = async () => {
+    if (isIngesting) return;
+
+    setIsIngesting(true);
+    setIngestStatus({ type: null, message: '' });
+
+    try {
+      const response = await fetch('/api/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      const data = await response.json();
+
+      if (data.status === 'success') {
+        setIngestStatus({
+          type: 'success',
+          message: `${data.message} (${data.documents_processed} docs processed)`
+        });
+      } else {
+        setIngestStatus({ type: 'error', message: data.message });
+      }
+    } catch (error) {
+      setIngestStatus({ type: 'error', message: 'Failed to connect to backend.' });
+    } finally {
+      setIsIngesting(false);
+      // Auto-dismiss the status after 5 seconds
+      setTimeout(() => setIngestStatus({ type: null, message: '' }), 5000);
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -79,13 +112,41 @@ export default function ChatPage() {
             <h1 className="text-xl font-semibold text-white">Apna RAG</h1>
             <p className="text-sm text-slate-400">Your private knowledge assistant</p>
           </div>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-3">
+            <button
+              onClick={handleRefreshKnowledgeBase}
+              disabled={isIngesting}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isIngesting ? (
+                <>
+                  <svg className="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Refreshing...
+                </>
+              ) : (
+                <>
+                  🔄 Refresh Knowledge Base
+                </>
+              )}
+            </button>
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
               Connected
             </span>
           </div>
         </div>
+        {/* Status Toast */}
+        {ingestStatus.type && (
+          <div className={`max-w-4xl mx-auto mt-3 px-4 py-2 rounded-lg text-sm ${ingestStatus.type === 'success'
+              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+              : 'bg-red-500/10 text-red-400 border border-red-500/20'
+            }`}>
+            {ingestStatus.type === 'success' ? '✅' : '❌'} {ingestStatus.message}
+          </div>
+        )}
       </header>
 
       {/* Messages */}
