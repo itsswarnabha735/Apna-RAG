@@ -76,7 +76,7 @@ export default function ChatPage() {
             <span className="text-white text-lg">🧠</span>
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-white">Personal RAG</h1>
+            <h1 className="text-xl font-semibold text-white">Apna RAG</h1>
             <p className="text-sm text-slate-400">Your private knowledge assistant</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -113,8 +113,8 @@ export default function ChatPage() {
             >
               <div
                 className={`max-w-[80%] rounded-2xl px-5 py-3 ${message.role === "user"
-                    ? "bg-indigo-600 text-white"
-                    : "bg-slate-800/50 text-slate-100 border border-slate-700/50"
+                  ? "bg-indigo-600 text-white"
+                  : "bg-slate-800/50 text-slate-100 border border-slate-700/50"
                   }`}
               >
                 <p className="whitespace-pre-wrap">{message.content}</p>
